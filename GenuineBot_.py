@@ -314,7 +314,7 @@ def run_model():
     databaseURL = "https://genuine-a483a-default-rtdb.firebaseio.com/"
     cred_obj = firebase_admin.credentials.Certificate(path)
     default_app = firebase_admin.initialize_app(cred_obj,{'databaseURL':'https://genuine-a483a-default-rtdb.firebaseio.com/',
-                                                'storageBucket': "gs://genuine-a483a.appspot.com" })
+                                                'storageBucket': "genuine-a483a.appspot.com" })
     path2 = "/GenuineTrustAccuracy"
     path3 = "/WordKnowledgeBase"
     #If the error is below or equal 75%...
