@@ -239,7 +239,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 # Add the model to your Firebase project and publish it
                 new_model = ml.update_model(model)
                 ml.publish_model(new_model.model_id)
-                database.reference(path2).set(cur_error*100)
+                database.reference(path2).set(float(cur_error*100.0))
                 database.reference(path3).set(tokenizer2.word_index)
             else:
                 #Otherwise, just learn more
@@ -261,7 +261,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 # Add the model to your Firebase project and publish it
                 new_model = ml.update_model(model)
                 ml.publish_model(new_model.model_id)
-                database.reference(path2).set(cur_error*100)
+                database.reference(path2).set(float(cur_error*100.0))
                 data.clear()
                 inference_count = 0
             return inference_count+1,cur_error,model,tokenizer2,total          
@@ -294,7 +294,7 @@ def run_model():
     everything = current_list()
     tokenizer.fit_on_texts(current_data)
     total_words = len(tokenizer.word_index) + 1
-    #####################################Load up the model
+    #######################################Load up the model
     model = Sequential()
     total_puncts = len(string.punctuation)
     #Genuine Bot
@@ -336,15 +336,8 @@ def run_model():
     source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
     # Create the model object
     print("Here!")
-    tflite_format = ml.TFLiteFormat(model_source=source)  
-    model = ml.Model(
-    display_name="GenuineTrustPredictor",
-    model_format=tflite_format)
-    # Add the model to your Firebase project and publish it
-    new_model = ml.create_model(model)
-    ml.publish_model(new_model.model_id)
     database.reference(path3).set(tokenizer.word_index)
-    database.reference(path2).set(cur_error*100)
+    database.reference(path2).set(0.0)
     while cloud_computing:
         for message in dataset:
             #current data is allowed to change, fully dynamic
