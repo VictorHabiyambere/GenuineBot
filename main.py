@@ -338,14 +338,13 @@ def run_model():
     print("Here!")
     database.reference(path3).set(tokenizer.word_index)
     database.reference(path2).set(0.0)
-    while cloud_computing:
-        for message in dataset:
-            #current data is allowed to change, fully dynamic
-            #Strip any punctuation from the message
-            message_pred = evaluate(model,message,current_data,len(message.strip().split()))
-            accumulated_data.append(message)
-            #Monitor for overfitting, underfitting and find solution
-            inference_count,cur_error,model,tokenizer,total = overfits(inference_count,error_thresold,inference_thresold,
+    for message in dataset:
+        #current data is allowed to change, fully dynamic
+        #Strip any punctuation from the message
+        message_pred = evaluate(model,message,current_data,len(message.strip().split()))
+        accumulated_data.append(message)
+        #Monitor for overfitting, underfitting and find solution
+        inference_count,cur_error,model,tokenizer,total = overfits(inference_count,error_thresold,inference_thresold,
                                                                        cur_error,message_pred,message,accumulated_data,
                                                                        tokenizer,total,current_data,database,path,path2,path3)
         dataset.clear()
@@ -356,24 +355,4 @@ import functions_framework
 # Note: this is NOT designed for second-party (Cloud Audit Logs -> Pub/Sub) triggers!
 @functions_framework.cloud_event
 def hello_auditlog(cloudevent):
-    # Print out the CloudEvent's (required) `type` property
-    # See https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#type
-    print(f"Event type: {cloudevent['type']}")
-
-    # Print out the CloudEvent's (optional) `subject` property
-    # See https://github.com/cloudevents/spec/blob/v1.0.1/spec.md#subject
-    if 'subject' in cloudevent:
-        # CloudEvent objects don't support `get` operations.
-        # Use the `in` operator to verify `subject` is present.
-        print(f"Subject: {cloudevent['subject']}")
-
-    # Print out details from the `protoPayload`
-    # This field encapsulates a Cloud Audit Logging entry
-    # See https://cloud.google.com/logging/docs/audit#audit_log_entry_structure
-
-    payload = cloudevent.data.get("protoPayload")
-    if payload:
-        print(f"API method: {payload.get('methodName')}")
-        print(f"Resource name: {payload.get('resourceName')}")
-        print(f"Principal: {payload.get('authenticationInfo', dict()).get('principalEmail')}")
     run_model()
