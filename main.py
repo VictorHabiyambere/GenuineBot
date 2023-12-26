@@ -74,7 +74,7 @@ def listener(event,dataset):
                 dataset.append(text_input)
 
 def get_dataset(dataset):
-    path = "C:\\Users\\Administrator\\Downloads\\HeyBoss.json"
+    path = "gs://genuine-a483a.appspot.com//Json//google-services.json"
     databaseURL = "https://genuine-a483a-default-rtdb.firebaseio.com/"
     cred_obj = firebase_admin.credentials.Certificate(path)
     default_app = firebase_admin.initialize_app(cred_obj, {'databaseURL':databaseURL})
@@ -98,7 +98,7 @@ def transfer_learning(model):
 
 def underfits(average_error,error_thresold):
 
-    if average_error <= error_thresold:
+    if average_error >= error_thresold:
         return True
     else:
         return False
@@ -160,7 +160,6 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
                 input_sequences.append(n_gram_sequence)
             elif i == max_length:
                 break
-    print("Done!")
     # Pad sequences and split into predictors and label
     max_sequence_len = 10
     input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
@@ -175,8 +174,13 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
             #Then, remove a hidden layer, if possible
             #First, check if this is possible
             if len(model.layers) >= 2:
-                #Remove a hidden layer, starting with the most deep layer
-                model.layers.remove(len(model.layers)-2)
+                Layer = model.layers[len(model.layers)-1]
+                #Remove the output layer
+                model.layers.remove(len(model.layers)-1)
+                #replace it with a new Bidirectional LSTM Layer
+                model.add(Bidirectional(LSTM(128,return_sequences=False)))
+                #Add the last output layer again
+                model.add(Layer)
     #In addition, it's important to re-train the model on its dataset
     #I imagine I won't need to detect signs of overfitting for this stage...
     for line in training_set2:
@@ -205,7 +209,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
     total_messages = ""
     total = total
     if inference_count >= inference_thresold:
-        if error <= error_thresold:
+        if error >= error_thresold:
             for message in data:
                 total_messages += message + '.' 
             tokenizer2 = Tokenizer()
@@ -229,9 +233,9 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 tflite_model = converter.convert()
                 savepoint = "Saved_Model.tflite"
                 with open(savepoint, 'wb') as f:
-                     f.write(tflite_model)
+                     f.write(tflite_model).
                 source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
-                # Create the model object
+                # Create the model object 
                 tflite_format = ml.TFLiteFormat(model_source=source)  
                 model = ml.Model(
                 display_name="GenuineTrustPredictor",
@@ -335,7 +339,6 @@ def run_model():
         f.write(tflite_model)
     source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
     # Create the model object
-    print("Here!")
     database.reference(path3).set(tokenizer.word_index)
     database.reference(path2).set(0.0)
     for message in dataset:
