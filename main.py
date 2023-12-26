@@ -244,7 +244,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 tflite_model = converter.convert()
                 savepoint = "gs://genuine-a483a.appspot.com/SavedModel/Saved_Model.tflite"
                 with open(savepoint, 'wb') as f:
-                     f.write(tflite_model).
+                     f.write(tflite_model)
                 source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
                 # Create the model object 
                 tflite_format = ml.TFLiteFormat(model_source=source)  
