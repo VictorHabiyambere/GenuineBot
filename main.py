@@ -362,7 +362,3 @@ def run_model():
                                                                        cur_error,message_pred,message,accumulated_data,
                                                                        tokenizer,total,current_data,database,path,path2,path3,accuracy)
         dataset.clear()
-
-@functions_framework.cloud_event
-def hello_auditlog(cloudevent):
-    run_model()
