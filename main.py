@@ -114,7 +114,7 @@ def sentence_list(textdata):
 ##Get the current knowledge 
 def current_list():
     
-    file_path = "C:\\Users\\Administrator\\Downloads\\archive\\articles.csv"
+    file_path = "gs://genuine-a483a.appspot.com/Articles/training.csv"
     data = pd.read_csv(file_path)
     textdata = "".join("".join(line) for line in data['text'])
     textdata1 = [textdata.strip() for sentence in re.split(r'(?>=[.?]\s+)',textdata) if sentence.strip()]
@@ -145,8 +145,8 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(vocab)
     total_words = len(tokenizer.word_index) + 1
-    PATH = "C:\\Users\\Administrator\\Downloads\\Intermediate_Model_.keras"
-    checkpoint_path = "training_2/cp.ckpt"
+    PATH = "gs://genuine-a483a.appspot.com/Model/Intermediate_Model_.keras"
+    checkpoint_path = ""gs://genuine-a483a.appspot.com/Checkpoint/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
     cp_callback = callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=False,verbose=1)
     # Create input sequences
@@ -179,7 +179,7 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
                 model.layers.remove(len(model.layers)-1)
                 #replace it with a new Bidirectional LSTM Layer
                 model.add(Bidirectional(LSTM(128,return_sequences=False)))
-                #Add the last output layer again
+                #Add the last output layer back
                 model.add(Layer)
     #In addition, it's important to re-train the model on its dataset
     #I imagine I won't need to detect signs of overfitting for this stage...
