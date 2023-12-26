@@ -47,6 +47,7 @@ import collections
 from nltk.tokenize.treebank import TreebankWordDetokenizer
 import json
 from firebase_admin import ml
+import functions_framework
 
 ####Main utilities
 
@@ -98,7 +99,7 @@ def transfer_learning(model):
 
 def underfits(average_error,error_thresold):
 
-    if average_error >= error_thresold:
+    if average_error <= error_thresold:
         return True
     else:
         return False
@@ -146,7 +147,7 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
     tokenizer.fit_on_texts(vocab)
     total_words = len(tokenizer.word_index) + 1
     PATH = "gs://genuine-a483a.appspot.com/Model/Intermediate_Model_.keras"
-    checkpoint_path = ""gs://genuine-a483a.appspot.com/Checkpoint/cp.ckpt"
+    checkpoint_path = "gs://genuine-a483a.appspot.com/Checkpoint/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
     cp_callback = callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=False,verbose=1)
     # Create input sequences
@@ -200,16 +201,26 @@ def train(model,training_set,vocab,pred_thresold,error_thresold,training_set2):
     return tokenizer
 
 #Data represents the examples that have been inferered, which will be used for training
-def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,pred,target,data,total,training_set2,database,path,path2,path3):
+def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,pred,target,data,total,training_set2,database,path,path2,path3,accuracy):
     history = model.eval(pred,target)
-    #Calculate current error
+    #Calculate current accuracy
+    #the name cur_error is misleading, I am actually using accuracy, instead of loss, to measure my model's effectiveness
     cur_error += history.history['accuracy']
+    accuracy.append(history.history['accuracy']*100)
+    plt.plt(accuracy)
+    plt.xlabel("# Of Predictions")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy vs # Of Predictions")
+    #Saves a history of the performance/accuracy of the Genuine Trust Predictor
+    #Higher accuracy indicates better performance at Predicting a users authenticity 
+    savepoint2 = "gs://genuine-a483a.appspot.com/accuracy/performance.png"
+    plt.savefig(savepoint2)
     error = float(cur_error/inference_count)
     total_outputs = 0
     total_messages = ""
     total = total
     if inference_count >= inference_thresold:
-        if error >= error_thresold:
+        if error <= error_thresold:
             for message in data:
                 total_messages += message + '.' 
             tokenizer2 = Tokenizer()
@@ -231,7 +242,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
                 converter._experimental_lower_tensor_list_ops = False
                 tflite_model = converter.convert()
-                savepoint = "Saved_Model.tflite"
+                savepoint = "gs://genuine-a483a.appspot.com/SavedModel/Saved_Model.tflite"
                 with open(savepoint, 'wb') as f:
                      f.write(tflite_model).
                 source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
@@ -253,7 +264,7 @@ def overfits(inference_count,error_thresold,inference_thresold,cur_error,model,p
                 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
                 converter._experimental_lower_tensor_list_ops = False
                 tflite_model = converter.convert()
-                savepoint = "Saved_Model.tflite"
+                savepoint = "gs://genuine-a483a.appspot.com/SavedModel/Saved_Model.tflite"
                 with open(savepoint, 'wb') as f:
                      f.write(tflite_model)
                 source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
@@ -310,19 +321,18 @@ def run_model():
     model.add(Dense(total_words, activation='softmax'))
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam', metrics=['accuracy'])
-    checkpoint_path = "training_2/cp.ckpt"
+    checkpoint_path = "gs://genuine-a483a.appspot.com/Checkpoint/cp.ckpt"
     model.load_weights(checkpoint_path)
     ########################################################
     #Upload the best working model on the firebase real-time database
-    path = "C:\\Users\\Administrator\\Downloads\\HeyBoss.json"
+    path = "gs://genuine-a483a.appspot.com//Json//google-services.json"
     databaseURL = "https://genuine-a483a-default-rtdb.firebaseio.com/"
     cred_obj = firebase_admin.credentials.Certificate(path)
     default_app = firebase_admin.initialize_app(cred_obj,{'databaseURL':'https://genuine-a483a-default-rtdb.firebaseio.com/',
                                                 'storageBucket': "genuine-a483a.appspot.com" })
     path2 = "/GenuineTrustAccuracy"
     path3 = "/WordKnowledgeBase"
-    #If the error is below or equal 75%...
-    error_thresold = 0.75
+    #If the error is below or equal 75%...    error_thresold = 0.75
     cur_error = 0
     inference_count = 1
     inference_thresold = 1000
@@ -334,13 +344,14 @@ def run_model():
     converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
     converter._experimental_lower_tensor_list_ops = False
     tflite_model = converter.convert()
-    savepoint = "Saved_Model.tflite"
+    savepoint = "gs://genuine-a483a.appspot.com/SavedModel/Saved_Model.tflite"
     with open(savepoint, 'wb') as f:
         f.write(tflite_model)
     source = ml.TFLiteGCSModelSource.from_tflite_model_file(savepoint)
     # Create the model object
     database.reference(path3).set(tokenizer.word_index)
     database.reference(path2).set(0.0)
+    accuracy = []
     for message in dataset:
         #current data is allowed to change, fully dynamic
         #Strip any punctuation from the message
@@ -349,13 +360,9 @@ def run_model():
         #Monitor for overfitting, underfitting and find solution
         inference_count,cur_error,model,tokenizer,total = overfits(inference_count,error_thresold,inference_thresold,
                                                                        cur_error,message_pred,message,accumulated_data,
-                                                                       tokenizer,total,current_data,database,path,path2,path3)
+                                                                       tokenizer,total,current_data,database,path,path2,path3,accuracy)
         dataset.clear()
 
-import functions_framework
-
-# CloudEvent function to be triggered by an Eventarc Cloud Audit Logging trigger
-# Note: this is NOT designed for second-party (Cloud Audit Logs -> Pub/Sub) triggers!
 @functions_framework.cloud_event
 def hello_auditlog(cloudevent):
     run_model()
