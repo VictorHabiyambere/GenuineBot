@@ -332,7 +332,8 @@ def run_model():
                                                 'storageBucket': "genuine-a483a.appspot.com" })
     path2 = "/GenuineTrustAccuracy"
     path3 = "/WordKnowledgeBase"
-    #If the error is below or equal 75%...    error_thresold = 0.75
+    #If the error is below or equal 75%...    
+    error_thresold = 0.75
     cur_error = 0
     inference_count = 1
     inference_thresold = 1000
